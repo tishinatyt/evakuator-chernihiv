@@ -10,7 +10,7 @@ const CONFIG = {
   },
   supabaseFunctionUrl: "https://pqasdmiqnlyyjwmmqeyc.supabase.co/functions/v1/tow-lead",
   googleAdsId: "AW-XXXXXXXXX",
-  googleAdsConversionLabels: { call: "XXX", form: "XXX", calc: "XXX" },
+  googleAdsConversionLabels: { call: "XXX", form: "XXX" },
   gaMeasurementId: "G-XXXXXXXXXX",
   siteUrl: "https://evakuator-che.online",
   customDomain: "evakuator-che.online"

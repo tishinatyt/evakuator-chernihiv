@@ -54,6 +54,8 @@ export async function handler(request: Request): Promise<Response> {
  const phone=String(data.phone||'').replace(/[\s()-]/g,'');
  if(!/^\+380\d{9}$/.test(phone)||data.privacy!==true)return reply(400,{error:'Valid phone and consent required'});
  if(data.vehicle && !vehicles[String(data.vehicle)])return reply(400,{error:'Invalid vehicle'});
+ if(data.type!==undefined&&data.type!=='calc')return reply(400,{error:'Invalid type'});
+ if(data.type==='calc'&&(!String(data.from||'').trim()||(data.vehicle!=='help'&&!String(data.to||'').trim())||!data.calculation))return reply(400,{error:'Route and calculation required'});
  const clean=(key:string)=>escape(String(data[key]||'Не вказано'));
  let calculation='Не було';
  if(data.calculation!==undefined&&data.calculation!==null){
@@ -72,14 +74,17 @@ export async function handler(request: Request): Promise<Response> {
  }
  const token=Deno.env.get('TELEGRAM_BOT_TOKEN');const chatId=Deno.env.get('TELEGRAM_CHAT_ID');
  const time=new Intl.DateTimeFormat('uk-UA',{timeZone:'Europe/Kyiv',dateStyle:'medium',timeStyle:'short'}).format(new Date());
- const text=`<b>НОВА ЗАЯВКА — Евакуатор</b>\n\n<b>Ім’я:</b> ${clean('name')}\n<b>Телефон:</b> <a href="tel:${phone}">${phone}</a>\n<b>Маршрут:</b> ${clean('from')} → ${clean('to')}\n<b>Тип авто:</b> ${escape(vehicles[String(data.vehicle)]||'Не вказано')}\n<b>Розрахунок:</b> ${calculation}\n<b>Коментар:</b> ${clean('comment')}\n\n<b>Джерело:</b>\n${attribution}\n\n<b>Час за Києвом:</b> ${time}`;
+ const calcData=data.calculation as Record<string,unknown>|null;
+ const heading=data.type==='calc'?'РОЗРАХУНОК ВАРТОСТІ':'НОВА ЗАЯВКА';
+ const repeat=data.type==='calc'&&calcData?.repeat===true?'\nповторний розрахунок':'';
+ const text=`<b>${heading}</b>${repeat}\n\n<b>Ім’я:</b> ${clean('name')}\n<b>Телефон:</b> <a href="tel:${phone}">${phone}</a>\n<b>Маршрут:</b> ${clean('from')} → ${clean('to')}\n<b>Тип авто:</b> ${escape(vehicles[String(data.vehicle)]||'Не вказано')}\n<b>Розрахунок:</b> ${calculation}\n<b>Коментар:</b> ${clean('comment')}\n\n<b>Джерело:</b>\n${attribution}\n\n<b>Час за Києвом:</b> ${time}`;
  const source=(data.attribution || {}) as Record<string,string>;
  const utm=Object.fromEntries(Object.entries(source).filter(([key])=>key.startsWith('utm_')));
  let leadId: string;
  try {
   const result=await database('?select=id','POST',{
    name:data.name || null, phone, from_addr:data.from || null, to_addr:data.to || null,
-   vehicle:data.vehicle || null, calc:data.calculation || null, comment:data.comment || null,
+   vehicle:data.vehicle || null, calc:calcData?{...calcData,...(data.type==='calc'?{type:'calc'}:{})}:null, comment:data.comment || null,
    utm, gclid:source.gclid || null, tg_sent:false
   });
   if(!result.ok){await result.body?.cancel();return reply(503,{error:'Unable to save lead'});}
@@ -95,6 +100,7 @@ export async function handler(request: Request): Promise<Response> {
    const updated=await database(`?id=eq.${leadId}`,'PATCH',{tg_sent:true});
    if(!updated.ok)console.warn('tow-lead: delivered; notification status update failed');
    await updated.body?.cancel();
+   if(data.type==='calc')return reply(200,{ok:true,notification:{sent:true,heading:body.result?.text?.split('\n')[0]===heading?heading:null}});
  }catch{console.warn('tow-lead: saved; notification or status update failed');}
  return reply(200,{ok:true});
 }

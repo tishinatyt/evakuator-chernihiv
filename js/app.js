@@ -141,3 +141,11 @@ if('IntersectionObserver' in window&&!matchMedia('(prefers-reduced-motion: reduc
 }
 
 document.querySelectorAll('[data-calc-link]').forEach(link=>link.addEventListener('click',event=>{if(!calc)return;event.preventDefault();$('#calc-from').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'center'});$('#calc-from').focus({preventScroll:true});}));
+
+// Decorative effects are isolated from calculation and lead submission.
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+ const result=document.querySelector('#calc-result');
+ if(result)new MutationObserver(()=>{if(!result.hidden){result.classList.remove('pop');requestAnimationFrame(()=>result.classList.add('pop'));}}).observe(result,{attributes:true,attributeFilter:['hidden']});
+ const road=document.querySelector('.road-line');
+ if(road&&'IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){road.classList.add('travel');observer.disconnect();}},{threshold:.5});observer.observe(road);}
+}

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://tishinatyt.github.io/evakuator-chernihiv/sitemap.xml

@@ -1,0 +1,4 @@
+project_id = "evakuator-chernihiv"
+
+[functions.tow-lead]
+verify_jwt = false

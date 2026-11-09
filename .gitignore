@@ -1,0 +1,10 @@
+photos/
+node_modules/
+.env*
+!.env.example
+.supabase/
+supabase/.temp/
+qa/
+contact-sheet.png
+img/poster-*.webp
+*.log

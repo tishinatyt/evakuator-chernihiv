@@ -1,0 +1,21 @@
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const C=require('../js/config.js'),calculate=require('../js/calculate.js');
+const html=fs.readFileSync('index.html','utf8');
+const graph=JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1])['@graph'];
+const decode=s=>s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+const questions=[...html.matchAll(/<details><summary>(.*?)<\/summary><p>(.*?)<\/p><\/details>/g)].map(m=>({q:decode(m[1]),a:decode(m[2])}));
+assert.deepEqual(questions,graph[1].mainEntity.map(x=>({q:x.name,a:x.acceptedAnswer.text})));
+assert.equal(graph.length,4);assert.equal(graph[0].hasOfferCatalog.itemListElement.length,5);
+assert.equal(graph[0].hasOfferCatalog.itemListElement[0].price,C.prices.cityBase);
+assert.equal((html.match(/<h1>/g)||[]).length,1);
+assert(!/24\/7/.test(html));assert(!/poster-/.test(html));
+const title=decode(html.match(/<title>(.*?)<\/title>/)[1]);
+const description=decode(html.match(/name="description" content="(.*?)"/)[1]);
+assert(title.length<=65);assert(description.length<=155);
+for(const match of html.matchAll(/(?:src|href)="([^"#]+)"/g)){const target=match[1];if(/^(https?:|tel:)/.test(target)||target==='./')continue;assert(fs.existsSync(target),'Missing asset '+target);}
+assert.equal(calculate({mode:'city',vehicle:'car'},C.prices),900);
+assert.equal(calculate({mode:'outside',vehicle:'suv',km:20,noKeys:true},C.prices),2100);
+assert.equal(calculate({mode:'help',vehicle:'minibus',noKeys:true},C.prices),500);
+const main=html.match(/<main id="main">([\s\S]*?)<\/main>/)[1].replace(/<[^>]+>/g,' ');
+assert(main.split(/\s+/).length>=900);
+console.log(JSON.stringify({result:'PASS',schemaNodes:4,faqMatches:questions.length,serviceOffers:5,titleLength:title.length,descriptionLength:description.length,approximateWords:main.split(/\s+/).length,assets:'all found',calculator:'city / outside / help passed'},null,2));

@@ -4,7 +4,7 @@
 
 ## Налаштування
 
-Єдине джерело тарифів: `js/config.js`. Змініть `prices` (усі поточні тарифи попередні), `arrivalMinutes`, `supabaseFunctionUrl`, `googleAdsId`, `googleAdsConversionLabels.call/form/calc`, `gaMeasurementId`. Для власного домену змініть `siteUrl` на `https://ваш-домен` і `customDomain` на домен без протоколу. Після кожної зміни:
+Єдине джерело тарифів: `js/config.js`. Актуальні тарифи: місто — 1800 грн; за місто — 27 грн/км, мінімум 1800 грн. За потреби змініть `prices`, `arrivalMinutes`, `supabaseFunctionUrl`, `googleAdsId`, `googleAdsConversionLabels.call/form/calc`, `gaMeasurementId`. Для власного домену змініть `siteUrl` на `https://ваш-домен` і `customDomain` на домен без протоколу. Після кожної зміни:
 
 ```powershell
 node build.js
@@ -15,7 +15,7 @@ git push
 
 `build.js` генерує головну, політику, 404, JSON-LD, sitemap, robots і CORS origin функції. За `customDomain: "DOMAIN"` справжній CNAME не створюється, щоб не зламати GitHub Pages; плейсхолдер лежить у `CNAME.example`. Після введення реального домену build створить `CNAME`. У разі зміни домену повторно задеплойте Edge Function.
 
-Формула: `(cityBase + outsideKm × perKmOutside) × vehicle + extras`. Для міста outsideKm = 0. Допомога на дорозі має окрему базову ціну. Вечірній тариф застосовується тільки з 21:00 до 23:00; виїздів поза графіком 5:00–23:00 сайт не обіцяє. Пальне сплачується окремо.
+Формула за місто: `max(cityBase, km × perKmOutside)`. Кілометри — відстань від Чернігова в один бік; по місту фіксовано `cityBase`. Усі коефіцієнти типу авто дорівнюють 1; тип і додаткові умови передаються як інформація та не змінюють розрахунок. Додаткові умови можуть вплинути на остаточну вартість — уточнюйте телефоном. Допомога на дорозі — за домовленістю, без числової ціни (`amount: null` лише для `vehicle: help`).
 
 ## Заявки й аналітика
 

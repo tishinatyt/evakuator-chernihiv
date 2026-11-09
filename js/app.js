@@ -49,9 +49,11 @@ function updateCalc(track=false){
  const valid= !outside || $('#km').validity.valid;
  const amount=calculate(data,CONFIG.prices);
  const extras=help?[]:Object.keys(extraNames).filter(k=>data[k]);
- const description=help?'Допомога на дорозі':`${outside?'За місто, '+data.km+' км':'По місту'}; ${vehicleNames[data.vehicle]}${extras.length?'; '+extras.map(k=>extraNames[k]).join(', '):''}`;
+ const description=help?'Допомога на дорозі':`${outside?'За місто, відстань від Чернігова в один бік: '+data.km+' км':'По місту'}; ${vehicleNames[data.vehicle]}${extras.length?'; '+extras.map(k=>extraNames[k]).join(', '):''}`;
  currentCalculation=valid?{amount,description,vehicle:help?'help':data.vehicle}:null;
- $('#calc-total').textContent=valid?'від '+amount.toLocaleString('uk-UA')+' грн':'Уточніть відстань';
+ $('#calc-heading').hidden=help;
+ $('#calc-total').textContent=help?'Вартість — за домовленістю':valid?'від '+amount.toLocaleString('uk-UA')+' грн':'Уточніть відстань';
+ $('#order-calc').textContent=help?'Залишити заявку':'Замовити за цією ціною ↗';
  $('#order-calc').disabled=!valid;
  if(track&&valid&&!calcTracked){conversion('calc');calcTracked=true;}
 }
@@ -59,7 +61,7 @@ if(calc){calc.addEventListener('input',()=>updateCalc(true));updateCalc();}
 $('#order-calc')?.addEventListener('click',()=>{
  if(!currentCalculation)return;selectedCalculation={...currentCalculation};
  $('#vehicle').value=selectedCalculation.vehicle;
- $('#lead-calc-text').textContent=`${selectedCalculation.description}. Орієнтовно від ${selectedCalculation.amount} грн. Ціну потрібно підтвердити.`;
+ $('#lead-calc-text').textContent=selectedCalculation.amount===null?`${selectedCalculation.description}. Вартість — за домовленістю.`:`${selectedCalculation.description}. Орієнтовно від ${selectedCalculation.amount} грн. Ціну потрібно підтвердити.`;
  $('#lead-calc').hidden=false;$('#request').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});$('#phone').focus({preventScroll:true});
 });
 function clearCalculation(){selectedCalculation=null;$('#lead-calc').hidden=true}

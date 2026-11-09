@@ -3,11 +3,10 @@ const CONFIG = {
   phoneDisplay: "063 505 65 86",
   arrivalMinutes: 30,
   prices: {
-    cityBase: 900, // PLACEHOLDER: підтвердити перед запуском реклами
-    perKmOutside: 30,
-    vehicle: { car: 1.0, suv: 1.2, minibus: 1.5, moto: 0.8 },
-    extras: { nonRolling: 300, noKeys: 300, night: 200, winch: 200 },
-    roadHelp: 500
+    cityBase: 1800, // Фіксований тариф по Чернігову; мінімум для заміської поїздки
+    perKmOutside: 27,
+    vehicle: { car: 1.0, suv: 1.0, minibus: 1.0, moto: 1.0 },
+    roadHelp: null // Вартість — за домовленістю
   },
   supabaseFunctionUrl: "https://pqasdmiqnlyyjwmmqeyc.supabase.co/functions/v1/tow-lead",
   googleAdsId: "AW-XXXXXXXXX",

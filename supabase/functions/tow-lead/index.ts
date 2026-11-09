@@ -58,8 +58,9 @@ export async function handler(request: Request): Promise<Response> {
  let calculation='Не було';
  if(data.calculation!==undefined&&data.calculation!==null){
    const c=data.calculation as Record<string,unknown>;
-   if(typeof c!=='object'||typeof c.amount!=='number'||!Number.isFinite(c.amount)||c.amount<0||c.amount>10000000||typeof c.description!=='string'||c.description.length>600)return reply(400,{error:'Invalid calculation'});
-   calculation=`${escape(c.description)} — від ${c.amount} грн (попередній розрахунок клієнта, підтвердити)`;
+   const agreedPrice = data.vehicle==='help' && c.amount===null;
+   if(typeof c!=='object'||(!agreedPrice&&(typeof c.amount!=='number'||!Number.isFinite(c.amount)||c.amount<0||c.amount>10000000))||typeof c.description!=='string'||c.description.length>600)return reply(400,{error:'Invalid calculation'});
+   calculation=agreedPrice?`${escape(c.description)} — вартість за домовленістю`:`${escape(c.description)} — від ${c.amount} грн (попередній розрахунок клієнта, підтвердити)`;
  }
  let attribution='Немає';
  if(data.attribution!==undefined){

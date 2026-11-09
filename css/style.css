@@ -12,3 +12,6 @@ body{background:#fff8f0;color:var(--ink);font-family:Manrope,Arial,sans-serif}h1
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.calc-result.pop:after{display:none}.button:hover,.button:active,.gallery figure:hover{transform:none}}
 /* Reserve result space only after a calculation. */
 .calc-submit-area:has(.calc-result[hidden]){min-height:0}
+
+/* Camaro art direction: keep both vehicles and place stickers outside the photograph. */
+.hero-media{padding-bottom:65px}.hero-media img{height:auto;aspect-ratio:1280/964;object-fit:cover;object-position:50% 50%}.hero-media .price-tag{bottom:12px;right:8px;padding:7px 10px}.hero-media .area-tag{bottom:-23px}.hero-media .photo-label{top:-20px}@media(max-width:767px){.hero-grid{grid-template-columns:1fr}.hero-media img{height:auto;aspect-ratio:4/5;object-position:50% 63%}.hero-media{padding-bottom:65px}}

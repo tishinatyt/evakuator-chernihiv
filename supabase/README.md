@@ -1,26 +1,36 @@
-# Заявки → Telegram
+# Заявки: Supabase → Telegram
 
-Проєкт: `ajvgaxevtjsfmtrmmvgr`. Команди перевірені через help Supabase CLI 3.0.0. Виконуйте з кореня репозиторію. Проєкт має бути активним: помилка `ProjectPausedError` потребує Restore project у Supabase Dashboard.
+Проєкт `pqasdmiqnlyyjwmmqeyc`. Endpoint: `https://pqasdmiqnlyyjwmmqeyc.supabase.co/functions/v1/tow-lead`.
+
+## Межі доступу
+
+Таблицю `public.tow_leads` створив власник вручну. RLS увімкнено, політик немає. Функція використовує вбудовані `SUPABASE_URL` та `SUPABASE_SERVICE_ROLE_KEY` лише на сервері. Читає/додає/оновлює виключно `tow_leads`. Існуючі таблиці й функції іншого застосунку не змінювати.
+
+**Механізм міграцій у цьому репозиторії не використовувати:** не виконувати migration pull/fetch/repair, db push чи db pull; не експортувати чужу схему. `.temp`, `.branches`, migrations, schemas, seed, roles та дампи виключені з Git. Локальна прив’язка залишається приватною.
+
+## Деплой тільки функції
 
 ```powershell
-npx supabase login
-npx supabase link --project-ref ajvgaxevtjsfmtrmmvgr
 node build.js
-npx supabase functions deploy tow-lead --no-verify-jwt --use-api --yes
+npx supabase functions deploy tow-lead --remote=pqasdmiqnlyyjwmmqeyc --no-verify-jwt --use-api --yes
 ```
 
-Секрети `TELEGRAM_BOT_TOKEN` та `TELEGRAM_CHAT_ID` вже встановлені власником проєкту. Не додавайте їх до репозиторію чи фронтенду. Якщо потрібно змінити їх, перевірте `npx supabase secrets set --help` для поточної версії CLI та використовуйте локальний `.env.telegram` (ігнорується git). Для цього Windows CLI потребував `NODE_EXTRA_CA_CERTS`, що вказує на PEM-пакет публічних кореневих сертифікатів Windows у `qa/windows-ca.pem`; він не публікується. Перевірку TLS не вимикати.
+Команда перевірена на CLI 3.0.0. Не використовувати `--prune` або деплой усіх функцій. На цьому Windows для CLI потрібен `NODE_EXTRA_CA_CERTS` із публічними кореневими сертифікатами Windows (`qa/windows-ca.pem`, не публікується). TLS-перевірку не вимикати.
 
-У `js/config.js` встановлено URL `https://ajvgaxevtjsfmtrmmvgr.supabase.co/functions/v1/tow-lead`. Після зміни `siteUrl` повторіть build і deploy функції: список CORS генерується в `site-config.ts`. Дозволені `https://evakuator-che.online`, `https://www.evakuator-che.online`, `https://tishinatyt.github.io`, а також HTTP localhost/127.0.0.1/IPv6 loopback. Origin не містить шлях, тому GitHub Pages не розрізняє репозиторії одного користувача.
+`TELEGRAM_BOT_TOKEN` установлений власником, `TELEGRAM_CHAT_ID` налаштований. Не виводити значення секретів, не копіювати їх у frontend або Git.
 
-## Перевірка
+## Поведінка
 
-`powershell -File scripts/test-live-function.ps1` надсилає одну реальну тестову заявку «ТЕСТ» з телефоном `+380000000000` через Invoke-RestMethod, перевіряє відсутній телефон (400), honeypot (тихий успіх) і CORS preflight для всіх адрес. Запускайте лише коли потрібне тестове повідомлення в Telegram. `node scripts/test-function.mjs` перевіряє без реальних повідомлень, зокрема доводить, що honeypot не викликає Telegram API.
+POST приймає валідований телефон і `privacy: true`. Honeypot `website` дає тихий `{ok:true}` без запису в базу чи Telegram. Поля форми зберігаються у `tow_leads`; UTM відокремлюються від gclid. Спочатку INSERT, потім Telegram, після підтвердженої доставки — PATCH `tg_sent=true` лише за ID створеної заявки. Помилка збереження повертає 503. Після успішного збереження відповідь завжди `{ok:true}`, навіть якщо Telegram не працює. Записи з `tg_sent=false` потрібно перевіряти вручну: автоматичного повторного надсилання немає. Якщо Telegram доставив повідомлення, але PATCH не вдався, прапорець може залишитися false.
 
-Надішліть тестову заявку з сайту, перевірте повідомлення у правильному Telegram-чаті, номер, маршрут, калькулятор і час. Повторіть з UTM/gclid після згоди на cookies. Без згоди рекламні мітки не зберігаються. Видаліть тестові повідомлення після перевірки. Функція повертає успіх лише після підтвердження Telegram API (крім honeypot, який тихо відсікається). Помилка Telegram повертає 502.
+GET `?ping=1` виконує лише `SELECT id LIMIT 1` через REST; повертає `{ok:true}` без вмісту таблиці й без Telegram. При недоступній базі — 503. Origin не потрібен для cron; сторонній Origin відхиляється. CORS: основний домен, www, tishinatyt.github.io і HTTP localhost/loopback. Ліміт POST — 5 запитів за 10 хвилин на IP одного теплого ізоляту, не глобальний. CORS не є захистом від прямого спаму.
 
-Ліміт — 5 POST-запитів за 10 хвилин на IP у межах теплого ізоляту. Він не глобальний і скидається при перезапуску; CORS не захищає від прямих бот-запитів. За значного спаму додайте спільний лічильник або CAPTCHA. Тіло обмежене 16 KiB, поля валідовані, HTML екранується. Дані заявок не логуються. Повторне ручне надсилання після таймауту потенційно може створити дублікат.
+## Перевірка й keepalive
 
-Таблиці, anon та service_role ключі не потрібні. Оператор має обмежити доступ до Telegram-чату та видаляти непотрібні заявки не пізніше 90 днів, як описано в політиці; автоматичне видалення не реалізоване.
+`node scripts/test-function.mjs` перевіряє mock-сценарії збереження, Telegram, RLS-доступу через серверний ключ, помилок і ping; без реальних повідомлень.
 
-Документація: https://supabase.com/docs/guides/functions/deploy та https://supabase.com/docs/guides/functions/secrets.
+`powershell -File scripts/test-live-function.ps1` надсилає одну реальну заявку «ТЕСТ», перевіряє телефон/honeypot/CORS/ping, зберігає маркер у `qa/live-test.json`. Окремий read-only запит до `tow_leads` потрібен для підтвердження одного рядка і `tg_sent=true`.
+
+`.github/workflows/keepalive.yml`: щодня о 07:17 UTC та вручну через workflow_dispatch. Виконує GET ping; будь-який статус, крім 200, або `ok` не true завершує job помилкою. Секрети workflow не потрібні. Плановий запуск залежить від доступності GitHub Actions.
+
+Оператор має видаляти непотрібні заявки і Telegram-повідомлення згідно з політикою (до 90 днів); автоматичне видалення не налаштоване. Повторний POST після мережевого таймауту може створити дублікат, тому frontend чекає до 30 секунд.

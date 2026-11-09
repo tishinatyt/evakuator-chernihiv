@@ -2,13 +2,30 @@ import { ALLOWED_ORIGINS } from './site-config.ts';
 const limits = new Map<string, { count: number; expires: number }>();
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const vehicles: Record<string,string> = {car:'Легковий автомобіль',suv:'Кросовер / позашляховик',minibus:'Мікроавтобус',moto:'Мотоцикл / квадроцикл',help:'Допомога на дорозі'};
+async function database(path: string, method = 'GET', payload?: unknown): Promise<Response> {
+ const url = Deno.env.get('SUPABASE_URL');
+ const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+ if (!url || !key) throw new Error('Database configuration unavailable');
+ return await fetch(`${url.replace(/\/$/, '')}/rest/v1/tow_leads${path}`, {
+  method, headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Prefer: method === 'POST' ? 'return=representation' : 'return=minimal' },
+  body: payload === undefined ? undefined : JSON.stringify(payload), signal: AbortSignal.timeout(8000)
+ });
+}
 export async function handler(request: Request): Promise<Response> {
  const origin=request.headers.get('origin') || '';
  let allowed = ALLOWED_ORIGINS.includes(origin);
  try {const u=new URL(origin);allowed ||= u.protocol==='http:' && ['localhost','127.0.0.1','[::1]'].includes(u.hostname);}catch{}
  const headers: Record<string,string> = {'Content-Type':'application/json; charset=utf-8','Vary':'Origin','Cache-Control':'no-store'};
- if(allowed)Object.assign(headers,{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'content-type','Access-Control-Max-Age':'600'});
+ if(allowed)Object.assign(headers,{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'content-type','Access-Control-Max-Age':'600'});
  const reply=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers});
+ if(request.method==='GET' && new URL(request.url).searchParams.get('ping')==='1') {
+  if(origin && !allowed)return reply(403,{error:'Origin not allowed'});
+  try {
+   const result=await database('?select=id&limit=1');
+   if(!result.ok){await result.body?.cancel();return reply(503,{error:'Database unavailable'});}
+   await result.arrayBuffer();return reply(200,{ok:true});
+  }catch{return reply(503,{error:'Database unavailable'});}
+ }
  if(!allowed)return reply(403,{error:'Origin not allowed'});
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
  if(request.method!=='POST')return reply(405,{error:'Method not allowed'});
@@ -53,14 +70,31 @@ export async function handler(request: Request): Promise<Response> {
    attribution=out.join('\n')||'Немає';
  }
  const token=Deno.env.get('TELEGRAM_BOT_TOKEN');const chatId=Deno.env.get('TELEGRAM_CHAT_ID');
- if(!token||!chatId)return reply(503,{error:'Service unavailable'});
  const time=new Intl.DateTimeFormat('uk-UA',{timeZone:'Europe/Kyiv',dateStyle:'medium',timeStyle:'short'}).format(new Date());
  const text=`<b>НОВА ЗАЯВКА — Евакуатор</b>\n\n<b>Ім’я:</b> ${clean('name')}\n<b>Телефон:</b> <a href="tel:${phone}">${phone}</a>\n<b>Маршрут:</b> ${clean('from')} → ${clean('to')}\n<b>Тип авто:</b> ${escape(vehicles[String(data.vehicle)]||'Не вказано')}\n<b>Розрахунок:</b> ${calculation}\n<b>Коментар:</b> ${clean('comment')}\n\n<b>Джерело:</b>\n${attribution}\n\n<b>Час за Києвом:</b> ${time}`;
- if(text.length>4000)return reply(400,{error:'Please shorten comment or attribution'});
+ const source=(data.attribution || {}) as Record<string,string>;
+ const utm=Object.fromEntries(Object.entries(source).filter(([key])=>key.startsWith('utm_')));
+ let leadId: string;
+ try {
+  const result=await database('?select=id','POST',{
+   name:data.name || null, phone, from_addr:data.from || null, to_addr:data.to || null,
+   vehicle:data.vehicle || null, calc:data.calculation || null, comment:data.comment || null,
+   utm, gclid:source.gclid || null, tg_sent:false
+  });
+  if(!result.ok){await result.body?.cancel();return reply(503,{error:'Unable to save lead'});}
+  const rows=await result.json();
+  if(!Array.isArray(rows)||rows.length!==1||!/^\d+$/.test(String(rows[0].id)))return reply(503,{error:'Unable to confirm saved lead'});
+  leadId=String(rows[0].id);
+ }catch{return reply(503,{error:'Unable to save lead'});}
+ // A saved lead is accepted even if notification fails. Never expose credentials or lead data in logs.
+ if(!token||!chatId||text.length>4000){console.warn('tow-lead: saved; Telegram notification unavailable');return reply(200,{ok:true});}
  try{
    const result=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text,parse_mode:'HTML',link_preview_options:{is_disabled:true}}),signal:AbortSignal.timeout(10000)});
-   const body=await result.json();if(!result.ok||body.ok!==true)return reply(502,{error:'Delivery failed'});
-   return reply(200,{ok:true});
- }catch{return reply(502,{error:'Delivery failed'});}
+   const body=await result.json();if(!result.ok||body.ok!==true){console.warn('tow-lead: saved; Telegram delivery failed');return reply(200,{ok:true});}
+   const updated=await database(`?id=eq.${leadId}`,'PATCH',{tg_sent:true});
+   if(!updated.ok)console.warn('tow-lead: delivered; notification status update failed');
+   await updated.body?.cancel();
+ }catch{console.warn('tow-lead: saved; notification or status update failed');}
+ return reply(200,{ok:true});
 }
 Deno.serve(handler);

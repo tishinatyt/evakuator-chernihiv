@@ -80,7 +80,7 @@ $('#lead-form')?.addEventListener('submit',async event=>{
  button.disabled=true;button.textContent='Надсилаємо…';status.textContent='';
  try{
    if(!/^https:\/\//.test(CONFIG.supabaseFunctionUrl)||CONFIG.supabaseFunctionUrl.includes('PLACEHOLDER'))throw new Error('Not configured');
-   const response=await fetch(CONFIG.supabaseFunctionUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(15000)});
+   const response=await fetch(CONFIG.supabaseFunctionUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(30000)});
    const result=await response.json();if(!response.ok||result.ok!==true)throw new Error('Send failed');
    form.hidden=true;status.innerHTML='<h3>Дякуємо! Передзвонимо протягом 5 хвилин</h3><p>У робочий час: щодня з 5:00 до 23:00. Заявки поза графіком опрацюємо наступного робочого ранку.</p>';status.focus();conversion('form');
  }catch{

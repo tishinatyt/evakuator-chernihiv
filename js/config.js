@@ -9,7 +9,7 @@ const CONFIG = {
     extras: { nonRolling: 300, noKeys: 300, night: 200, winch: 200 },
     roadHelp: 500
   },
-  supabaseFunctionUrl: "https://ajvgaxevtjsfmtrmmvgr.supabase.co/functions/v1/tow-lead",
+  supabaseFunctionUrl: "https://pqasdmiqnlyyjwmmqeyc.supabase.co/functions/v1/tow-lead",
   googleAdsId: "AW-XXXXXXXXX",
   googleAdsConversionLabels: { call: "XXX", form: "XXX", calc: "XXX" },
   gaMeasurementId: "G-XXXXXXXXXX",

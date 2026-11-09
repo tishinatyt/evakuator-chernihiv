@@ -4,6 +4,14 @@ node_modules/
 !.env.example
 .supabase/
 supabase/.temp/
+supabase/.branches/
+supabase/migrations/
+supabase/schemas/
+supabase/backups/
+supabase/seed.sql
+supabase/roles.sql
+*.dump
+*.backup
 qa/
 contact-sheet.png
 img/poster-*.webp

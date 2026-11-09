@@ -8,6 +8,8 @@ const C=require('../js/config.js'),calc=require('../js/calculate.js');
  fs.mkdirSync('qa',{recursive:true});
  const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-gpu','--renderer-process-limit=1']});
  const context=await browser.newContext();const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ // Browser regression checks never submit to the production database or Telegram.
+ if(/^https:\/\//.test(C.supabaseFunctionUrl))await page.route(C.supabaseFunctionUrl,route=>route.fulfill({status:503,contentType:'application/json',body:'{"error":"Mock service unavailable"}'}));
  if(process.env.OFFLINE_FONTS==='1')await page.route(/fonts\.(googleapis|gstatic)\.com/,route=>route.abort());
  for(const width of [360,390,768,1280,1440]){
    await page.setViewportSize({width,height:900});await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});await page.evaluate(()=>Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,3000))]));

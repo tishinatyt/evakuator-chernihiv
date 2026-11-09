@@ -1,5 +1,5 @@
 const fs = require('node:fs');
-const base = 'https://tishinatyt.github.io/evakuator-chernihiv/';
+const base = require('../js/config.js').siteUrl.replace(/\/$/, '') + '/';
 async function main() {
  const results=[];const urls=new Set(['', 'privacy.html','404.html','robots.txt','sitemap.xml','favicon.svg','apple-touch-icon.png','img/og-image.jpg'].map(p=>new URL(p,base).href));
  for(const file of ['index.html','privacy.html','404.html']){

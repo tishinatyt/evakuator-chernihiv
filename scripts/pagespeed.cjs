@@ -1,5 +1,5 @@
 const fs=require('node:fs');
-const target='https://tishinatyt.github.io/evakuator-chernihiv/';
+const target=require('../js/config.js').siteUrl.replace(/\/$/, '') + '/';
 // Never log the key or request URL. .env* files are ignored by Git.
 let apiKey=process.env.PAGESPEED_API_KEY;
 if(!apiKey&&fs.existsSync('.env.pagespeed')){

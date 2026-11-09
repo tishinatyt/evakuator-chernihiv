@@ -13,7 +13,7 @@ const CONFIG = {
   googleAdsId: "AW-XXXXXXXXX",
   googleAdsConversionLabels: { call: "XXX", form: "XXX", calc: "XXX" },
   gaMeasurementId: "G-XXXXXXXXXX",
-  siteUrl: "https://tishinatyt.github.io/evakuator-chernihiv",
-  customDomain: "DOMAIN" // замінити на домен без https; DOMAIN не публікується як CNAME
+  siteUrl: "https://evakuator-che.online",
+  customDomain: "evakuator-che.online"
 };
 if (typeof module !== 'undefined') module.exports = CONFIG;

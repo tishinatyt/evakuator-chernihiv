@@ -60,6 +60,8 @@ node scripts/verify.cjs
 
 Авторизуйте саме `tishinatyt`. Після успішної публікації: `https://tishinatyt.github.io/evakuator-chernihiv/`. Не починайте Google Ads до підтвердження тарифів, підключення функції та перевірки реальної заявки.
 
+Якщо Git повідомить `dubious ownership` після створення репозиторію в песочниці, додайте виняток лише для цієї папки: `git config --global --add safe.directory C:/Users/Dell/projects/evakuator-chernihiv`.
+
 ## DNS власного домену
 
 Спочатку додайте реальний домен у Pages → Custom domain (і конфіг), потім DNS:

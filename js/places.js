@@ -1,0 +1,21 @@
+// The dataset is fetched only after focus enters the calculator, never on page load.
+const PlacePicker=(()=>{
+ let places=null,pending=null;
+ async function load(){if(places)return places;if(pending)return pending;pending=fetch('data/places.json',{signal:AbortSignal.timeout(15000)}).then(r=>{if(!r.ok)throw Error('places unavailable');return r.json();}).then(rows=>{if(!Array.isArray(rows)||!rows.length)throw Error('empty places');places=rows;return places;}).finally(()=>pending=null);return pending;}
+ function attach(id,onChange){
+  const input=document.getElementById(id),list=document.getElementById(id+'-list'),status=document.getElementById(id+'-hint');let selected=null,items=[],active=-1,manual=false,free=false;
+  function close(){list.hidden=true;input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');active=-1;}
+  function choose(p){selected=p;manual=false;input.value=p.n;document.getElementById(id+'-manual').hidden=true;document.getElementById(id+'-km').disabled=true;document.getElementById(id+'-manual-toggle').textContent='Немає у списку? Вкажіть відстань вручну';status.textContent=p.n==='Чернігів'?'Чернігів (по місту)':p.d;input.removeAttribute('aria-invalid');document.getElementById(id+'-error').textContent='';close();onChange();}
+  function render(){
+   if(document.activeElement!==input||manual||free)return;list.replaceChildren();items=[RouteCalculator.centre,...(places||[]).filter(p=>p.n!=='Чернігів'&&RouteCalculator.matches(p,input.value)).slice(0,19)];active=-1;
+   items.forEach((p,i)=>{const option=document.createElement('li');option.id=id+'-option-'+i;option.setAttribute('role','option');option.setAttribute('aria-selected','false');option.textContent=p.n==='Чернігів'?'Чернігів (по місту)':`${p.n}, ${p.d}`;option.addEventListener('pointerdown',e=>e.preventDefault());option.addEventListener('click',()=>{choose(p);input.focus({preventScroll:true});close();});list.append(option);});list.hidden=false;input.setAttribute('aria-expanded','true');
+  }
+  async function show(){if(manual)return;status.textContent=places?'':'Завантажуємо населені пункти…';render();try{await load();if(!manual){status.textContent=selected?selected.d:'Оберіть населений пункт зі списку.';render();}}catch{status.textContent='Не вдалося завантажити список. Вкажіть відстань вручну або спробуйте ще раз.';}}
+  input.addEventListener('focus',show);input.addEventListener('input',()=>{selected=null;if(!manual)render();onChange();});input.addEventListener('blur',close);
+  input.addEventListener('keydown',e=>{if(e.key==='Escape'){close();return;}if(list.hidden)return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();active=(active+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;[...list.children].forEach((el,i)=>el.setAttribute('aria-selected',String(i===active)));input.setAttribute('aria-activedescendant',list.children[active].id);list.children[active].scrollIntoView({block:'nearest'});}else if(e.key==='Enter'&&active>=0){e.preventDefault();choose(items[active]);}});
+  document.getElementById(id+'-manual-toggle').addEventListener('click',()=>{manual=!manual;selected=null;close();document.getElementById(id+'-manual').hidden=!manual;document.getElementById(id+'-km').disabled=!manual;document.getElementById(id+'-manual-toggle').textContent=manual?'Повернутися до списку населених пунктів':'Немає у списку? Вкажіть відстань вручну';status.textContent=manual?'Вкажіть назву місця та відстань в один бік від Чернігова.':'';if(manual)document.getElementById(id+'-km').focus();else input.focus();onChange();});
+  document.getElementById(id+'-km').addEventListener('input',onChange);
+  return {setFree(value){free=value;if(free){close();status.textContent='Вкажіть населений пункт, адресу або орієнтир.';}},get(){if(manual){const field=document.getElementById(id+'-km');return input.value.trim()&&field.value!==''&&field.validity.valid?{n:input.value.trim(),d:'відстань вручну',km:Number(field.value),manual:true,approx:true}:null;}if(selected)return selected;const matches=(places||[]).filter(p=>RouteCalculator.normalize(p.n)===RouteCalculator.normalize(input.value));if(RouteCalculator.normalize(input.value)==='чернигив')return RouteCalculator.centre;return matches.length===1?matches[0]:null;},isManual:()=>manual,choose,close};
+ }
+ return {load,attach};
+})();

@@ -32,17 +32,9 @@ const description=decode(html.match(/name="description" content="(.*?)"/)[1]);
 assert(title.length<=65);assert(description.length<=155);
 assert(description.includes('від 1800 грн'));assert(html.includes('property="og:description" content="'+description+'"'));
 for(const match of html.matchAll(/(?:src|href)="([^"#]+)"/g)){const target=match[1];if(/^(https?:|tel:)/.test(target)||target==='./')continue;assert(fs.existsSync(target),'Missing asset '+target);}
-assert.equal(calculate({mode:'city',vehicle:'car'},C.prices),1800);
-assert.equal(calculate({mode:'outside',vehicle:'suv',km:20,noKeys:true},C.prices),1800);
-assert.equal(calculate({mode:'outside',vehicle:'car',km:100},C.prices),5400);
-assert.equal(calculate({mode:'outside',vehicle:'car',km:50},C.prices),2700);
-assert.equal(calculate({mode:'help',vehicle:'minibus',noKeys:true},C.prices),null);
-for(const vehicle of Object.keys(C.prices.vehicle)){
- assert.equal(C.prices.vehicle[vehicle],1);
- assert.equal(calculate({mode:'city',vehicle,nonRolling:true,noKeys:true,night:true,winch:true},C.prices),1800);
- assert.equal(calculate({mode:'outside',vehicle,km:100,nonRolling:true,noKeys:true,night:true,winch:true},C.prices),5400);
-}
+require('./test-routes.cjs');
+assert(!html.includes('name="mode"'));assert(!html.includes('id="order-calc"'));assert(!html.includes('позначте відповідну умову'));
 assert(!/(?:900|300|200|500) грн|30 грн\/км|null грн/.test(html));
 const main=html.match(/<main id="main">([\s\S]*?)<\/main>/)[1].replace(/<[^>]+>/g,' ');
 assert(main.split(/\s+/).length>=900);
-console.log(JSON.stringify({result:'PASS',schemaNodes:4,faqMatches:questions.length,serviceOffers:offers.length,titleLength:title.length,descriptionLength:description.length,approximateWords:main.split(/\s+/).length,assets:'all found',calculator:'city=1800 / 20km=1800 / 50km=2700 / 100km=5400 / help=null; vehicle and extras ignored'},null,2));
+console.log(JSON.stringify({result:'PASS',schemaNodes:4,faqMatches:questions.length,serviceOffers:offers.length,titleLength:title.length,descriptionLength:description.length,approximateWords:main.split(/\s+/).length,assets:'all found',calculator:'full route, minimum 1800, rate 27, rounded up to 10; help agreed'},null,2));

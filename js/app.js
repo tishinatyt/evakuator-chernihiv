@@ -56,26 +56,43 @@ for(const phone of document.querySelectorAll('input[type="tel"]'))phone.addEvent
 let calcHistory=[];
 try{const saved=JSON.parse(sessionStorage.getItem('tow-calc-history')||'[]');if(Array.isArray(saved))calcHistory=saved.slice(0,3);}catch{}
 let calcVersion=0;
-function calcFields(){const mode=calc.elements.mode.value;$('#km-field').hidden=mode!=='outside';$('#km').disabled=mode!=='outside';$('#km').required=mode==='outside';$('#calc-to-field').hidden=mode==='help';$('#calc-to').disabled=mode==='help';$('#calc-to').required=mode!=='help';}
+let fromPicker,toPicker;
+function calcFields(){
+ const help=calc.elements.service.value==='help';
+ $('#calc-from-label').textContent=help?'Де ви знаходитесь *':'Звідки *';
+ $('#calc-to-field').hidden=help;$('#calc-to').disabled=help;$('#calc-to').required=!help;
+ for(const [key,picker] of [['from',fromPicker],['to',toPicker]]){const manual=!!picker?.isManual()&&!help;$('#calc-'+key+'-manual-toggle').hidden=help;$('#calc-'+key+'-manual').hidden=!manual;$('#calc-'+key+'-km').disabled=!manual;$('#calc-'+key+'-km').required=manual;picker?.setFree(help);}
+ const f=fromPicker?.get(),t=toPicker?.get();const between=!help&&f&&t&&!RouteCalculator.isCity(f)&&!RouteCalculator.isCity(t)&&(f.manual||t.manual);
+ $('#between-field').hidden=!between;$('#between-km').disabled=!between;$('#between-km').required=!!between;
+}
+function routeChanged(){if(!calc)return;calcFields();$('#calc-result').hidden=true;calcVersion++;}
 function fieldError(field){
  if(field.disabled)return '';
  if(field.name==='phone'&&!/^\+380\d{9}$/.test('+'+field.value.replace(/\D/g,'')))return 'Введіть повний номер: +380 та 9 цифр.';
  if(field.name==='privacy'&&!field.checked)return 'Підтвердьте згоду на обробку даних.';
  if(field.required&&!field.value.trim())return field.name==='from'?'Вкажіть адресу або місце подачі.':field.name==='to'?'Вкажіть адресу доставки.':'Вкажіть відстань від Чернігова.';
- if(!field.validity.valid)return field.name==='km'?'Введіть ціле число від 1 до 2000 км.':'Перевірте значення поля.';
+ if(!field.validity.valid)return /Km$/.test(field.name)?'Вкажіть допустиму відстань у кілометрах.':'Перевірте значення поля.';
  return '';
 }
 if(calc){
- calcFields();calc.addEventListener('input',event=>{calcFields();const field=event.target;const error=$('#'+field.id+'-error');if(error){error.textContent='';field.removeAttribute('aria-invalid');}});
+ fromPicker=PlacePicker.attach('calc-from',routeChanged);toPicker=PlacePicker.attach('calc-to',routeChanged);
+ calc.addEventListener('focusin',()=>{PlacePicker.load().catch(()=>{});},{once:true});
+ fromPicker.choose(RouteCalculator.centre);
+ calcFields();calc.addEventListener('input',event=>{routeChanged();const field=event.target;const error=$('#'+field.id+'-error');if(error){error.textContent='';field.removeAttribute('aria-invalid');}});
  calc.addEventListener('submit',async event=>{
   event.preventDefault();let first=null;
   for(const field of calc.querySelectorAll('input[required]')){const message=fieldError(field);const error=$('#'+field.id+'-error');if(error)error.textContent=message;field.setAttribute('aria-invalid',String(!!message));if(message&&!first)first=field;}
   if(first){first.focus();return;}
-  const data=Object.fromEntries(new FormData(calc));const help=data.mode==='help',outside=data.mode==='outside';
-  const extras=Object.keys(extraNames).filter(k=>data[k]);const amount=calculate(data,CONFIG.prices);
-  const breakdown=help?'':outside?`${data.km} км × 2 (туди й назад) × ${CONFIG.prices.perKmOutside} грн; мінімум ${CONFIG.prices.cityBase} грн.`:`По місту — фіксовано ${CONFIG.prices.cityBase} грн.`;
-  const calculation={type:'calc',amount,mode:data.mode,km:outside?Number(data.km):null,vehicle:data.vehicle,extras,description:`${help?'Допомога на дорозі':breakdown}; ${vehicleNames[data.vehicle]}${extras.length?'; '+extras.map(k=>extraNames[k]).join(', '):''}`};
-  const payload={type:'calc',from:data.from.trim(),to:help?'':data.to.trim(),phone:'+'+data.phone.replace(/\D/g,''),name:data.name.trim(),vehicle:help?'help':data.vehicle,website:data.website,privacy:true,calculation,attribution:attribution()};
+  const data=Object.fromEntries(new FormData(calc));const help=data.service==='help';
+  const from=fromPicker.get(),to=toPicker.get();
+  if(!help){for(const [key,point] of [['from',from],['to',to]])if(!point){const field=$('#calc-'+key);field.setAttribute('aria-invalid','true');$('#calc-'+key+'-error').textContent='Оберіть населений пункт зі списку або вкажіть відстань вручну.';field.focus();return;}}
+  const computed=RouteCalculator.route({service:data.service,from,to,betweenKm:data.betweenKm===undefined?undefined:Number(data.betweenKm)},CONFIG.prices);
+  const {amount,km,approx}=computed;const extras=Object.keys(extraNames).filter(k=>data[k]);
+  const route=help?data.from.trim():['Чернігів',from.n,to.n,'Чернігів'].join(' → ');
+  const breakdown=help?'':km===0?'По місту — фіксовано '+CONFIG.prices.cityBase+' грн.':'Маршрут: '+route+' ≈ '+km.toLocaleString('uk-UA',{maximumFractionDigits:1})+' км × '+CONFIG.prices.perKmOutside+' грн. Мінімум '+CONFIG.prices.cityBase+' грн; округлення вгору до 10 грн.'+(approx?' Відстань орієнтовна.':'');
+  const calculation={type:'calc',amount,service:data.service,km,approx,route,from:help?null:from,to:help?null:to,betweenKm:data.betweenKm===undefined?null:Number(data.betweenKm),vehicle:data.vehicle,extras,description:(help?'Допомога на дорозі: '+route:breakdown)+'; '+vehicleNames[data.vehicle]+(extras.length?'; '+extras.map(k=>extraNames[k]).join(', '):'')};
+  const address=p=>(p.n+(p.d?', '+p.d:'')).slice(0,200);
+  const payload={type:'calc',from:help?data.from.trim():address(from),to:help?'':address(to),phone:'+'+data.phone.replace(/\D/g,''),name:data.name.trim(),vehicle:help?'help':data.vehicle,website:data.website,privacy:true,calculation,attribution:attribution()};
   const version=++calcVersion;$('#calc-result').hidden=false;$('#calc-heading').hidden=help;
   $('#calc-total').textContent=help?'Вартість — за домовленістю, передзвонимо протягом 5 хвилин':'від '+amount.toLocaleString('uk-UA')+' грн';
   $('#calc-breakdown').textContent=breakdown;
@@ -122,3 +139,5 @@ if('IntersectionObserver' in window&&!matchMedia('(prefers-reduced-motion: reduc
  const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.remove('pending');observer.unobserve(entry.target)}}),{threshold:.06});
  document.querySelectorAll('.reveal').forEach(el=>{if(el.getBoundingClientRect().top>innerHeight){el.classList.add('pending');observer.observe(el)}});
 }
+
+document.querySelectorAll('[data-calc-link]').forEach(link=>link.addEventListener('click',event=>{if(!calc)return;event.preventDefault();$('#calc-from').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'center'});$('#calc-from').focus({preventScroll:true});}));

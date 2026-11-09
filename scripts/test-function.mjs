@@ -15,4 +15,9 @@ for(let i=0;i<5;i++)assert.equal((await handler(request(good,undefined,'fixed'))
 assert.equal((await handler(request(good,undefined,'fixed'))).status,429);
 globalThis.fetch=async()=>new Response('{"ok":false}',{status:400});assert.equal((await handler(request(good))).status,502);
 const preflight=await handler(new Request('https://example.com',{method:'OPTIONS',headers:{origin:'http://localhost:4173'}}));assert.equal(preflight.status,204);assert.equal(preflight.headers.get('Access-Control-Allow-Origin'),'http://localhost:4173');
+for(const origin of ['https://evakuator-che.online','https://www.evakuator-che.online','https://tishinatyt.github.io','http://localhost:3000','http://127.0.0.1:4173']){
+ const result=await handler(new Request('https://example.com',{method:'OPTIONS',headers:{origin}}));
+ assert.equal(result.status,204);assert.equal(result.headers.get('Access-Control-Allow-Origin'),origin);
+}
+assert.equal((await handler(new Request('https://example.com',{method:'OPTIONS',headers:{origin:'https://evakuator-che.online.evil.example'}}))).status,403);
 console.log('PASS: CORS, validation, body cap, honeypot, HTML escaping, Telegram success/failure, IP limit and preflight. Telegram mocked; no live message sent.');

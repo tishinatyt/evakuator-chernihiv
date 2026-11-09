@@ -7,6 +7,17 @@ const questions=[...html.matchAll(/<details><summary>(.*?)<\/summary><p>(.*?)<\/
 assert.deepEqual(questions,graph[1].mainEntity.map(x=>({q:x.name,a:x.acceptedAnswer.text})));
 assert.equal(graph.length,4);assert.equal(graph[0].hasOfferCatalog.itemListElement.length,5);
 assert.equal(graph[0].hasOfferCatalog.itemListElement[0].price,C.prices.cityBase);
+const base=C.siteUrl.replace(/\/$/,'');
+assert(html.includes(`<link rel="canonical" href="${base}/">`));
+assert(html.includes(`<meta property="og:url" content="${base}/">`));
+assert(html.includes(`<meta property="og:image" content="${base}/img/og-image.jpg">`));
+assert.equal(graph[0].url,base+'/');
+assert.equal(graph[0].image,base+'/img/og-image.jpg');
+assert.equal(graph[2].url,base+'/');
+assert.equal(graph[3].itemListElement[0].item,base+'/');
+assert(fs.readFileSync('sitemap.xml','utf8').includes(`<loc>${base}/</loc>`));
+assert(fs.readFileSync('robots.txt','utf8').includes(`Sitemap: ${base}/sitemap.xml`));
+if(C.customDomain!=='DOMAIN')assert.equal(fs.readFileSync('CNAME','utf8').trim(),C.customDomain);
 assert.equal((html.match(/<h1>/g)||[]).length,1);
 assert(!/24\/7/.test(html));assert(!/poster-/.test(html));
 const title=decode(html.match(/<title>(.*?)<\/title>/)[1]);

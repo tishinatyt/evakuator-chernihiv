@@ -1,10 +1,10 @@
-import { SITE_ORIGIN } from './site-config.ts';
+import { ALLOWED_ORIGINS } from './site-config.ts';
 const limits = new Map<string, { count: number; expires: number }>();
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const vehicles: Record<string,string> = {car:'Легковий автомобіль',suv:'Кросовер / позашляховик',minibus:'Мікроавтобус',moto:'Мотоцикл / квадроцикл',help:'Допомога на дорозі'};
 export async function handler(request: Request): Promise<Response> {
  const origin=request.headers.get('origin') || '';
- let allowed = origin === SITE_ORIGIN;
+ let allowed = ALLOWED_ORIGINS.includes(origin);
  try {const u=new URL(origin);allowed ||= u.protocol==='http:' && ['localhost','127.0.0.1','[::1]'].includes(u.hostname);}catch{}
  const headers: Record<string,string> = {'Content-Type':'application/json; charset=utf-8','Vary':'Origin','Cache-Control':'no-store'};
  if(allowed)Object.assign(headers,{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'content-type','Access-Control-Max-Age':'600'});

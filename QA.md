@@ -1,5 +1,15 @@
 # Перевірка — 09.11.2026
 
+## Поточний стан підключення Supabase
+
+- У конфігурації встановлено `https://ajvgaxevtjsfmtrmmvgr.supabase.co/functions/v1/tow-lead`. CORS розширено на основний домен, www, `https://tishinatyt.github.io` і localhost; локальні тести всіх origin пройшли, сторонній origin відхиляється.
+- Supabase CLI 3.0.0 працює з публічними кореневими сертифікатами Windows через NODE_EXTRA_CA_CERTS. Прив’язка проєкту зупинилася на `ProjectPausedError`. Функцію з цієї версії коду поки не задеплоєно: потрібне відновлення проєкту через Dashboard.
+- Реальний тест через Invoke-RestMethod спробувано: DNS `ajvgaxevtjsfmtrmmvgr.supabase.co` не резолвиться, HTTP-відповіді немає. Успішна доставка, live-валідація без телефону й live-honeypot не підтверджені. Локальні тести валідації та відсутності Telegram-запиту для honeypot пройшли.
+- `https://evakuator-che.online/` і всі 24 ресурси відповідають 200; canonical, Open Graph, JSON-LD, sitemap, robots і CNAME перевірені на домен. DNS — чотири A GitHub Pages, www — CNAME на tishinatyt.github.io. Enforce HTTPS увімкнено; сертифікат до 2027-02-07.
+- PSI повторено для нового домену: mobile і desktop повернули 429 RESOURCE_EXHAUSTED, доступна квота 0. Числових оцінок та аудиторських зауважень API не надав.
+
+## Попередні перевірки
+
 - `node build.js`: згенеровано всі статичні сторінки, sitemap, robots, schema і CORS origin.
 - `node scripts/check-static.cjs`: PASS. JSON-LD — валідний JSON, 4 вузли графа, 5 Offer/Service, 8 FAQ збігаються зі сторінкою 1:1. Один H1. Title 46 символів, description 135. Усі локальні посилання на файли існують. Це структурна локальна перевірка, не сертифікація Google Rich Results.
 - Текст основних блоків: близько 1 000 видимих слів (понад 1 300 з прихованими відповідями та умовами).

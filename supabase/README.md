@@ -1,23 +1,21 @@
 # Заявки → Telegram
 
-Потрібні Supabase CLI та проєкт у Supabase. Виконуйте з кореня репозиторію. Команди відповідають офіційній документації; локальна перевірка help не завершилася через аварійне завершення CLI 2.108.0 на цьому Windows. Для CLI v3 перевірте help: хмарні зміни можуть запитувати підтвердження, а старий прапорець project-ref позначений застарілим. Виконуйте інтерактивно й перевіряйте назву цільового проєкту:
+Проєкт: `ajvgaxevtjsfmtrmmvgr`. Команди перевірені через help Supabase CLI 3.0.0. Виконуйте з кореня репозиторію. Проєкт має бути активним: помилка `ProjectPausedError` потребує Restore project у Supabase Dashboard.
 
 ```powershell
-supabase --help
-supabase login
-supabase link --project-ref YOUR_PROJECT_REF
-supabase functions deploy --help
-supabase secrets set --help
-supabase secrets set TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN" TELEGRAM_CHAT_ID="YOUR_CHAT_ID" --project-ref YOUR_PROJECT_REF
+npx supabase login
+npx supabase link --project-ref ajvgaxevtjsfmtrmmvgr
 node build.js
-supabase functions deploy tow-lead --no-verify-jwt --project-ref YOUR_PROJECT_REF
+npx supabase functions deploy tow-lead --no-verify-jwt --use-api --yes
 ```
 
-Створіть бота через @BotFather, почніть діалог або додайте його до приватної групи. Отримайте chat ID з Telegram getUpdates. Не додавайте токен до репозиторію чи фронтенду. Щоб токен не потрапляв в історію shell, використовуйте `.env.telegram` (ігнорується git) та `supabase secrets set --env-file .env.telegram --project-ref YOUR_PROJECT_REF`.
+Секрети `TELEGRAM_BOT_TOKEN` та `TELEGRAM_CHAT_ID` вже встановлені власником проєкту. Не додавайте їх до репозиторію чи фронтенду. Якщо потрібно змінити їх, перевірте `npx supabase secrets set --help` для поточної версії CLI та використовуйте локальний `.env.telegram` (ігнорується git). Для цього Windows CLI потребував `NODE_EXTRA_CA_CERTS`, що вказує на PEM-пакет публічних кореневих сертифікатів Windows у `qa/windows-ca.pem`; він не публікується. Перевірку TLS не вимикати.
 
-У `js/config.js` змініть `supabaseFunctionUrl` на `https://YOUR_PROJECT_REF.supabase.co/functions/v1/tow-lead`, виконайте `node build.js`, закомітьте й опублікуйте. Після зміни `siteUrl` повторіть build і deploy функції: дозволений origin генерується в `site-config.ts`. Дозволені лише цей origin та HTTP localhost/127.0.0.1/IPv6 loopback. Origin не містить шлях, тому GitHub Pages не розрізняє репозиторії одного користувача.
+У `js/config.js` встановлено URL `https://ajvgaxevtjsfmtrmmvgr.supabase.co/functions/v1/tow-lead`. Після зміни `siteUrl` повторіть build і deploy функції: список CORS генерується в `site-config.ts`. Дозволені `https://evakuator-che.online`, `https://www.evakuator-che.online`, `https://tishinatyt.github.io`, а також HTTP localhost/127.0.0.1/IPv6 loopback. Origin не містить шлях, тому GitHub Pages не розрізняє репозиторії одного користувача.
 
 ## Перевірка
+
+`powershell -File scripts/test-live-function.ps1` надсилає одну реальну тестову заявку «ТЕСТ» з телефоном `+380000000000` через Invoke-RestMethod, перевіряє відсутній телефон (400), honeypot (тихий успіх) і CORS preflight для всіх адрес. Запускайте лише коли потрібне тестове повідомлення в Telegram. `node scripts/test-function.mjs` перевіряє без реальних повідомлень, зокрема доводить, що honeypot не викликає Telegram API.
 
 Надішліть тестову заявку з сайту, перевірте повідомлення у правильному Telegram-чаті, номер, маршрут, калькулятор і час. Повторіть з UTM/gclid після згоди на cookies. Без згоди рекламні мітки не зберігаються. Видаліть тестові повідомлення після перевірки. Функція повертає успіх лише після підтвердження Telegram API (крім honeypot, який тихо відсікається). Помилка Telegram повертає 502.
 

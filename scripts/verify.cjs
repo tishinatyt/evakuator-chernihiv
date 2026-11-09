@@ -4,7 +4,7 @@ const testBase=(process.env.TEST_BASE_URL||'http://127.0.0.1:4173').replace(/\/$
 (async()=>{
  assert.equal(calc({mode:'city',vehicle:'car'},C.prices),1800);
  assert.equal(calc({mode:'outside',vehicle:'suv',km:20,noKeys:true},C.prices),1800);
- assert.equal(calc({mode:'outside',vehicle:'suv',km:100},C.prices),2700);
+ assert.equal(calc({mode:'outside',vehicle:'suv',km:100},C.prices),5400);
  assert.equal(calc({mode:'help',vehicle:'minibus',noKeys:true},C.prices),null);
  assert.equal(calc({mode:'city',vehicle:'moto',nonRolling:true,winch:true},C.prices),1800);
  fs.mkdirSync('qa',{recursive:true});
@@ -26,14 +26,14 @@ const testBase=(process.env.TEST_BASE_URL||'http://127.0.0.1:4173').replace(/\/$
  await page.locator('#cookie-decline').click();
  await page.locator('[name=mode][value=outside]').check();await page.locator('#km').fill('20');await page.locator('#calc-vehicle').selectOption('suv');await page.locator('[name=noKeys]').check();
  assert.match(await page.locator('#calc-total').textContent(),/1\s?800/);
- await page.locator('#km').fill('100');assert.match(await page.locator('#calc-total').textContent(),/2\s?700/);
- await page.locator('#order-calc').click();assert.equal(await page.locator('#vehicle').inputValue(),'suv');assert.match(await page.locator('#lead-calc-text').textContent(),/2700/);
+ await page.locator('#km').fill('50');assert.match(await page.locator('#calc-total').textContent(),/2\s?700/); await page.locator('#km').fill('100');assert.match(await page.locator('#calc-total').textContent(),/5\s?400/);assert.equal(await page.locator('#calc-breakdown').textContent(),'100 км × 2 (туди й назад) × 27 грн');
+ await page.locator('#order-calc').click();assert.equal(await page.locator('#vehicle').inputValue(),'suv');assert.match(await page.locator('#lead-calc-text').textContent(),/5400/);
  assert.match(await page.locator('#lead-calc-text').textContent(),/немає ключів/);
  await page.locator('#phone').fill('0635056586');assert.equal(await page.locator('#phone').inputValue(),'+380 63 505 65 86');
  await page.locator('[name=privacy]').check();await page.locator('#lead-form [type=submit]').click();await page.waitForFunction(()=>document.querySelector('#form-status').textContent.includes('Не вдалося'));
  await page.evaluate(()=>{CONFIG.supabaseFunctionUrl='https://test.invalid/functions/v1/tow-lead'});
  let payload;await page.route('https://test.invalid/**',async route=>{payload=route.request().postDataJSON();await route.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'})});
- await page.locator('#lead-form [type=submit]').click();await page.waitForFunction(()=>document.querySelector('#lead-form').hidden);assert.equal(payload.calculation.amount,2700);assert.deepEqual(payload.attribution,{});assert.match(payload.calculation.description,/немає ключів/);
+ await page.locator('#lead-form [type=submit]').click();await page.waitForFunction(()=>document.querySelector('#lead-form').hidden);assert.equal(payload.calculation.amount,5400);assert.deepEqual(payload.attribution,{});assert.match(payload.calculation.description,/немає ключів/);
  await page.locator('.gallery-open').first().click();assert.equal(await page.locator('#lightbox').evaluate(e=>e.open),true);await page.keyboard.press('Escape');assert.equal(await page.locator('#lightbox').evaluate(e=>e.open),false);
  await page.goto(testBase+'/?utm_source=google&gclid=test');await page.locator('[data-cookie-settings]').click();await page.locator('#cookie-accept').click();
  assert.deepEqual(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('tow-attribution'))),{utm_source:'google',gclid:'test'});

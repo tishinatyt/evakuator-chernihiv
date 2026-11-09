@@ -49,9 +49,11 @@ function updateCalc(track=false){
  const valid= !outside || $('#km').validity.valid;
  const amount=calculate(data,CONFIG.prices);
  const extras=help?[]:Object.keys(extraNames).filter(k=>data[k]);
- const description=help?'Допомога на дорозі':`${outside?'За місто, відстань від Чернігова в один бік: '+data.km+' км':'По місту'}; ${vehicleNames[data.vehicle]}${extras.length?'; '+extras.map(k=>extraNames[k]).join(', '):''}`;
+ const description=help?'Допомога на дорозі':`${outside?'За місто, відстань від Чернігова в один бік: '+data.km+' км × 2 (туди й назад) × '+CONFIG.prices.perKmOutside+' грн':'По місту'}; ${vehicleNames[data.vehicle]}${extras.length?'; '+extras.map(k=>extraNames[k]).join(', '):''}`;
  currentCalculation=valid?{amount,description,vehicle:help?'help':data.vehicle}:null;
  $('#calc-heading').hidden=help;
+ $('#calc-breakdown').hidden=!outside||!valid;
+ $('#calc-breakdown').textContent=outside&&valid?`${data.km} км × 2 (туди й назад) × ${CONFIG.prices.perKmOutside} грн`:'';
  $('#calc-total').textContent=help?'Вартість — за домовленістю':valid?'від '+amount.toLocaleString('uk-UA')+' грн':'Уточніть відстань';
  $('#order-calc').textContent=help?'Залишити заявку':'Замовити за цією ціною ↗';
  $('#order-calc').disabled=!valid;

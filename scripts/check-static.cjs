@@ -11,6 +11,7 @@ const offers=graph[0].hasOfferCatalog.itemListElement;
 assert.equal(offers[0].priceSpecification.price,1800);
 const outsideOffer=offers.find(o=>o.itemOffered.name==='Евакуація за місто');
 assert.equal(outsideOffer.price,27);assert.equal(outsideOffer.priceCurrency,'UAH');assert.equal(outsideOffer.priceSpecification.unitText,'км');assert.equal(outsideOffer.priceSpecification.price,27);
+assert(outsideOffer.description.includes('27 грн/км в обидва боки'));
 const helpOffer=offers.find(o=>o.itemOffered.name==='Допомога на дорозі');
 assert.equal(helpOffer.price,undefined);assert.equal(helpOffer.priceSpecification,undefined);
 const base=C.siteUrl.replace(/\/$/,'');
@@ -33,14 +34,15 @@ assert(description.includes('від 1800 грн'));assert(html.includes('propert
 for(const match of html.matchAll(/(?:src|href)="([^"#]+)"/g)){const target=match[1];if(/^(https?:|tel:)/.test(target)||target==='./')continue;assert(fs.existsSync(target),'Missing asset '+target);}
 assert.equal(calculate({mode:'city',vehicle:'car'},C.prices),1800);
 assert.equal(calculate({mode:'outside',vehicle:'suv',km:20,noKeys:true},C.prices),1800);
-assert.equal(calculate({mode:'outside',vehicle:'car',km:100},C.prices),2700);
+assert.equal(calculate({mode:'outside',vehicle:'car',km:100},C.prices),5400);
+assert.equal(calculate({mode:'outside',vehicle:'car',km:50},C.prices),2700);
 assert.equal(calculate({mode:'help',vehicle:'minibus',noKeys:true},C.prices),null);
 for(const vehicle of Object.keys(C.prices.vehicle)){
  assert.equal(C.prices.vehicle[vehicle],1);
  assert.equal(calculate({mode:'city',vehicle,nonRolling:true,noKeys:true,night:true,winch:true},C.prices),1800);
- assert.equal(calculate({mode:'outside',vehicle,km:100,nonRolling:true,noKeys:true,night:true,winch:true},C.prices),2700);
+ assert.equal(calculate({mode:'outside',vehicle,km:100,nonRolling:true,noKeys:true,night:true,winch:true},C.prices),5400);
 }
 assert(!/(?:900|300|200|500) грн|30 грн\/км|null грн/.test(html));
 const main=html.match(/<main id="main">([\s\S]*?)<\/main>/)[1].replace(/<[^>]+>/g,' ');
 assert(main.split(/\s+/).length>=900);
-console.log(JSON.stringify({result:'PASS',schemaNodes:4,faqMatches:questions.length,serviceOffers:offers.length,titleLength:title.length,descriptionLength:description.length,approximateWords:main.split(/\s+/).length,assets:'all found',calculator:'city=1800 / 20km=1800 / 100km=2700 / help=null; vehicle and extras ignored'},null,2));
+console.log(JSON.stringify({result:'PASS',schemaNodes:4,faqMatches:questions.length,serviceOffers:offers.length,titleLength:title.length,descriptionLength:description.length,approximateWords:main.split(/\s+/).length,assets:'all found',calculator:'city=1800 / 20km=1800 / 50km=2700 / 100km=5400 / help=null; vehicle and extras ignored'},null,2));

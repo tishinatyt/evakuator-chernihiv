@@ -58,9 +58,15 @@ node scripts/verify.cjs
 .\qa\gh\bin\gh.exe api --method POST repos/tishinatyt/evakuator-chernihiv/pages -f "source[branch]=main" -f "source[path]=/"
 ```
 
-Авторизуйте саме `tishinatyt`. Після успішної публікації: `https://tishinatyt.github.io/evakuator-chernihiv/`. Не починайте Google Ads до підтвердження тарифів, підключення функції та перевірки реальної заявки.
+Сайт уже опубліковано: https://tishinatyt.github.io/evakuator-chernihiv/. Репозиторій: https://github.com/tishinatyt/evakuator-chernihiv, Pages з `main`, корінь `/`. Команди створення вище наведені для довідки; повторно виконувати їх не потрібно. Не починайте Google Ads до підтвердження тарифів, підключення функції та перевірки реальної заявки.
 
 Якщо Git повідомить `dubious ownership` після створення репозиторію в песочниці, додайте виняток лише для цієї папки: `git config --global --add safe.directory C:/Users/Dell/projects/evakuator-chernihiv`.
+
+## Перевірка опублікованого сайту та PageSpeed
+
+`node scripts/check-published.cjs` перевіряє HTTP-статуси сторінок і всіх ресурсів з урахуванням підшляху GitHub Pages. `node scripts/pagespeed.cjs` викликає офіційний PageSpeed Insights API для mobile/desktop та всіх чотирьох категорій. Сирі результати зберігаються тільки в ігнорованій папці `qa/`.
+
+API без ключа повернув 429 (нульова доступна квота). Для повторного заміру задайте `PAGESPEED_API_KEY` у середовищі або створіть `.env.pagespeed` з рядком `PAGESPEED_API_KEY=ваш_ключ`. Потрібен власний проєкт Google Cloud з увімкненим PageSpeed Insights API й доступною квотою. Файл ігнорується Git, ключ не виводиться. Після цього виконайте `node scripts/pagespeed.cjs`. Скрипт виведе реальні оцінки та п’ять зауважень, якщо API поверне результат аудиту.
 
 ## DNS власного домену
 

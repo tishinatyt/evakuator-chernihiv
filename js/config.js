@@ -4,7 +4,7 @@ const CONFIG = {
   arrivalMinutes: 30,
   prices: {
     cityBase: 1800, // Фіксований тариф по Чернігову; мінімум для заміської поїздки
-    perKmOutside: 27,
+    perKmOutside: 29,
     vehicle: { car: 1.0, suv: 1.0, minibus: 1.0, moto: 1.0 },
     roadHelp: null // Вартість — за домовленістю
   },

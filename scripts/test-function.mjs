@@ -30,8 +30,8 @@ assert.equal(rows[0].tg_sent,true);assert.equal(rows[0].from_addr,'A');assert.eq
 assert(calls[1].body.text.includes('&lt;b&gt;Test &amp; name&lt;/b&gt;'));assert(!calls[1].body.text.includes('<script>'));
 assert(calls[1].body.text.startsWith('<b>НОВА ЗАЯВКА</b>'));
 calls=[];
-assert.equal((await handler(request({...good,type:'calc',calculation:{amount:2700,description:'50 км × 2 × 27 грн',repeat:true}}))).status,200);
-assert.equal(rows.at(-1).calc.type,'calc');assert.equal(rows.at(-1).calc.amount,2700);
+assert.equal((await handler(request({...good,type:'calc',calculation:{amount:2900,description:'50 км × 2 × 29 грн',repeat:true}}))).status,200);
+assert.equal(rows.at(-1).calc.type,'calc');assert.equal(rows.at(-1).calc.amount,2900);
 assert(calls[1].body.text.startsWith('<b>РОЗРАХУНОК ВАРТОСТІ</b>\nповторний розрахунок'));
 assert.equal((await handler(request({...good,type:'calc',from:''}))).status,400);
 calls=[];

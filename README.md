@@ -4,7 +4,7 @@
 
 ## Налаштування
 
-Єдине джерело тарифів: `js/config.js`. Актуальні тарифи: місто — 1800 грн; за місто — 27 грн/км в обидва боки, мінімум 1800 грн. За потреби змініть `prices`, `arrivalMinutes`, `supabaseFunctionUrl`, `googleAdsId`, `googleAdsConversionLabels.call/form`, `gaMeasurementId`. Для власного домену змініть `siteUrl` на `https://ваш-домен` і `customDomain` на домен без протоколу. Після кожної зміни:
+Єдине джерело тарифів: `js/config.js`. Актуальні тарифи: місто — 1800 грн; за місто — 29 грн/км в обидва боки, мінімум 1800 грн. За потреби змініть `prices`, `arrivalMinutes`, `supabaseFunctionUrl`, `googleAdsId`, `googleAdsConversionLabels.call/form`, `gaMeasurementId`. Для власного домену змініть `siteUrl` на `https://ваш-домен` і `customDomain` на домен без протоколу. Після кожної зміни:
 
 ```powershell
 node build.js

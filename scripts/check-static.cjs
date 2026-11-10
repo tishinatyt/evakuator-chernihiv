@@ -10,8 +10,8 @@ assert.equal(graph[0].hasOfferCatalog.itemListElement[0].price,C.prices.cityBase
 const offers=graph[0].hasOfferCatalog.itemListElement;
 assert.equal(offers[0].priceSpecification.price,1800);
 const outsideOffer=offers.find(o=>o.itemOffered.name==='Евакуація за місто');
-assert.equal(outsideOffer.price,27);assert.equal(outsideOffer.priceCurrency,'UAH');assert.equal(outsideOffer.priceSpecification.unitText,'км');assert.equal(outsideOffer.priceSpecification.price,27);
-assert(outsideOffer.description.includes('27 грн/км в обидва боки'));
+assert.equal(outsideOffer.price,29);assert.equal(outsideOffer.priceCurrency,'UAH');assert.equal(outsideOffer.priceSpecification.unitText,'км');assert.equal(outsideOffer.priceSpecification.price,29);
+assert(outsideOffer.description.includes('29 грн/км в обидва боки'));
 const helpOffer=offers.find(o=>o.itemOffered.name==='Допомога на дорозі');
 assert.equal(helpOffer.price,undefined);assert.equal(helpOffer.priceSpecification,undefined);
 const base=C.siteUrl.replace(/\/$/,'');
@@ -37,4 +37,4 @@ assert(!html.includes('name="mode"'));assert(!html.includes('id="order-calc"'));
 assert(!/(?:900|300|200|500) грн|30 грн\/км|null грн/.test(html));
 const main=html.match(/<main id="main">([\s\S]*?)<\/main>/)[1].replace(/<[^>]+>/g,' ');
 assert(main.split(/\s+/).length>=900);
-console.log(JSON.stringify({result:'PASS',schemaNodes:4,faqMatches:questions.length,serviceOffers:offers.length,titleLength:title.length,descriptionLength:description.length,approximateWords:main.split(/\s+/).length,assets:'all found',calculator:'full route, minimum 1800, rate 27, rounded up to 10; help agreed'},null,2));
+console.log(JSON.stringify({result:'PASS',schemaNodes:4,faqMatches:questions.length,serviceOffers:offers.length,titleLength:title.length,descriptionLength:description.length,approximateWords:main.split(/\s+/).length,assets:'all found',calculator:'full route, minimum 1800, rate 29, rounded up to 10; help agreed'},null,2));

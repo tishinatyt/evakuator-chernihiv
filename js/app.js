@@ -14,9 +14,9 @@ function captureAttribution(){
  try {const params=new URLSearchParams(location.search);const data={};for(const [k,v] of params)if(attributionKeys(k))data[k]=v.slice(0,300);if(Object.keys(data).length)sessionStorage.setItem('tow-attribution',JSON.stringify(data));} catch {}
 }
 function loadTags(){
- if(tagsLoaded || consent!=='granted' || (!validAds&&!validGa))return;
+ if(tagsLoaded || (!validAds&&!validGa))return;
  tagsLoaded=true;gtag('js',new Date());
- if(validAds)gtag('config',CONFIG.googleAdsId);
+ if(validAds)gtag('config',CONFIG.googleAdsId,{allow_enhanced_conversions:false});
  if(validGa)gtag('config',CONFIG.gaMeasurementId);
  const script=document.createElement('script');script.async=true;script.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(validAds?CONFIG.googleAdsId:CONFIG.gaMeasurementId);document.head.append(script);
 }
@@ -26,15 +26,22 @@ function applyConsent(value){
  if(granted){captureAttribution();loadTags();}
 }
 if(consent==='granted')applyConsent(consent);
+loadTags();
 const banner=$('#cookie-banner');
 if(banner && !consent)banner.hidden=false;
 $('#cookie-accept')?.addEventListener('click',()=>{storage.set('tow-consent','granted');applyConsent('granted');banner.hidden=true});
 $('#cookie-decline')?.addEventListener('click',()=>{const reload=tagsLoaded;storage.set('tow-consent','denied');applyConsent('denied');try{sessionStorage.removeItem('tow-attribution')}catch{}banner.hidden=true;if(reload)location.reload()});
 document.querySelectorAll('[data-cookie-settings]').forEach(b=>b.addEventListener('click',()=>{banner.hidden=false;$('#cookie-accept').focus()}));
-function conversion(kind){
+const sentConversions = new Set();
+function conversion(kind, transactionId){
  if(consent!=='granted')return;
- const label=CONFIG.googleAdsConversionLabels[kind];
- if(validAds && label && !/XXX|PLACEHOLDER/.test(label))gtag('event','conversion',{send_to:CONFIG.googleAdsId+'/'+label});
+ const label=CONFIG.googleAdsConversionLabels?.[kind];
+ if(!validAds || typeof label!=='string' || !/^[A-Za-z0-9_-]+$/.test(label) || /XXX|PLACEHOLDER/i.test(label))return;
+ if(kind==='form' && !transactionId)return;
+ const key=kind+':'+transactionId;
+ if(kind==='form' && sentConversions.has(key))return;
+ if(kind==='form')sentConversions.add(key);
+ gtag('event','conversion',{send_to:CONFIG.googleAdsId+'/'+label,...(transactionId?{transaction_id:transactionId}:{})});
  if(validGa)gtag('event',kind==='form'?'generate_lead':'click_to_call',{event_category:'engagement'});
 }
 document.addEventListener('click',event=>{if(event.target.closest('a[href^="tel:"]'))conversion('call')});
@@ -43,9 +50,12 @@ const vehicleNames={car:'Легковий автомобіль',suv:'Кросо�
 const extraNames={nonRolling:'не на ходу',noKeys:'немає ключів',blockedWheels:'заблоковані колеса'};
 function attribution(){try{return consent==='granted'?JSON.parse(sessionStorage.getItem('tow-attribution')||'{}'):{};}catch{return {}}}
 async function sendLead(data){
+ const fallbackId=crypto.randomUUID();
  if(!/^https:\/\//.test(CONFIG.supabaseFunctionUrl)||CONFIG.supabaseFunctionUrl.includes('PLACEHOLDER'))throw new Error('Not configured');
  const response=await fetch(CONFIG.supabaseFunctionUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(30000)});
  const result=await response.json();if(!response.ok||result.ok!==true)throw new Error('Send failed');
+ if(data.website)return null;
+ return String(result.id || result.lead_id || fallbackId);
 }
 function sendError(status){status.textContent='Не вдалося надіслати заявку — зателефонуйте нам: ';const link=document.createElement('a');link.href='tel:'+CONFIG.phone;link.textContent=CONFIG.phoneDisplay;status.append(link);}
 for(const phone of document.querySelectorAll('input[type="tel"]'))phone.addEventListener('input',()=>{
@@ -109,23 +119,22 @@ if(calc){
   calculation.repeat=calcHistory.length>0;const entry={key,status:'pending'};calcHistory.push(entry);
   const save=()=>{try{sessionStorage.setItem('tow-calc-history',JSON.stringify(calcHistory));}catch{}};save();
   status.textContent='Надсилаємо заявку…';
-  try{await sendLead(payload);entry.status='sent';if(version===calcVersion)status.textContent='Заявку надіслано. Очікуйте дзвінка диспетчера.';conversion('form');}
+  try{const transactionId=await sendLead(payload);entry.status='sent';if(version===calcVersion)status.textContent='Заявку надіслано. Очікуйте дзвінка диспетчера.';conversion('form',transactionId);}
   catch{entry.status='failed';if(version===calcVersion)sendError(status);}finally{save();}
  });
 }
 const phone=$('#phone');
 $('#lead-form')?.addEventListener('submit',async event=>{
  event.preventDefault();const form=event.currentTarget;const button=form.querySelector('[type=submit]');const status=$('#form-status');
+ if(button.disabled || form.hidden)return;
  const data=Object.fromEntries(new FormData(form));data.phone='+'+data.phone.replace(/\D/g,'');
  if(!/^\+380\d{9}$/.test(data.phone)){phone.setCustomValidity('Введіть повний український номер телефону.');phone.reportValidity();return;}
  data.calculation=null;data.privacy=true;
  try{data.attribution=consent==='granted'?JSON.parse(sessionStorage.getItem('tow-attribution')||'{}'):{};}catch{data.attribution={}}
  button.disabled=true;button.textContent='Надсилаємо…';status.textContent='';
  try{
-   if(!/^https:\/\//.test(CONFIG.supabaseFunctionUrl)||CONFIG.supabaseFunctionUrl.includes('PLACEHOLDER'))throw new Error('Not configured');
-   const response=await fetch(CONFIG.supabaseFunctionUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(30000)});
-   const result=await response.json();if(!response.ok||result.ok!==true)throw new Error('Send failed');
-   form.hidden=true;status.innerHTML='<h3>Дякуємо! Передзвонимо протягом 5 хвилин</h3><p>У робочий час: щодня з 5:00 до 23:00. Заявки поза графіком опрацюємо наступного робочого ранку.</p>';status.focus();conversion('form');
+   const transactionId=await sendLead(data);
+   form.hidden=true;status.innerHTML='<h3>Дякуємо! Передзвонимо протягом 5 хвилин</h3><p>У робочий час: щодня з 5:00 до 23:00. Заявки поза графіком опрацюємо наступного робочого ранку.</p>';status.focus();conversion('form',transactionId);
  }catch{
    status.textContent='Не вдалося надіслати заявку. Спробуйте ще раз або зателефонуйте: ';const link=document.createElement('a');link.href='tel:'+CONFIG.phone;link.textContent=CONFIG.phoneDisplay;status.append(link);status.focus();
  }finally{button.disabled=false;button.textContent='Надіслати заявку ↗';}

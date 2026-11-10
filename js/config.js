@@ -9,8 +9,8 @@ const CONFIG = {
     roadHelp: null // Вартість — за домовленістю
   },
   supabaseFunctionUrl: "https://pqasdmiqnlyyjwmmqeyc.supabase.co/functions/v1/tow-lead",
-  googleAdsId: "AW-XXXXXXXXX",
-  googleAdsConversionLabels: { call: "XXX", form: "XXX" },
+  googleAdsId: "AW-18565415902",
+  googleAdsConversionLabels: { call: "XXX", form: "cchjCO-qyrUdEN6H15RF" },
   gaMeasurementId: "G-XXXXXXXXXX",
   siteUrl: "https://evakuator-che.online",
   customDomain: "evakuator-che.online"

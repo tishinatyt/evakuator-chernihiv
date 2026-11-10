@@ -32,7 +32,7 @@ const place=n=>places.find(p=>p.n===n);
   await page.locator('#calc-name').fill('Зміна');await submit(page,state,R.route({from:place('Ніжин'),to:place('Київ')},C.prices).amount);assert.match(await page.locator('#calc-send-status').textContent(),/3 розрахунки/);assert.equal(state.payloads.length,3);
   const broken=await page.locator('a[href^="#"]').evaluateAll(links=>links.map(a=>a.getAttribute('href')).filter(h=>h.length>1&&!document.getElementById(h.slice(1))));assert.deepEqual(broken,[]);
   await page.locator('.gallery-open').first().click();assert(await page.locator('#lightbox').evaluate(e=>e.open));await page.keyboard.press('Escape');assert.equal(await page.locator('#lightbox').evaluate(e=>e.open),false);
-  assert.equal(await page.locator('script[src*="googletagmanager"]').count(),0);
+  assert.equal(await page.locator('script[src*="googletagmanager"]').count(),/^AW-\d+$/.test(C.googleAdsId)?1:0);
   for(const href of await page.locator('a[href^="tel:"]').evaluateAll(a=>a.map(x=>x.getAttribute('href'))))assert.equal(href,'tel:'+C.phone);
   await page.locator('details summary').first().click();assert(await page.locator('details').first().getAttribute('open')!==null);
   const graph=await page.locator('script[type="application/ld+json"]').evaluate(e=>JSON.parse(e.textContent)['@graph']);assert.deepEqual(await page.locator('details').evaluateAll(ds=>ds.map(d=>[d.querySelector('summary').textContent,d.querySelector('p').textContent])),graph[1].mainEntity.map(q=>[q.name,q.acceptedAnswer.text]));

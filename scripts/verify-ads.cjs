@@ -3,7 +3,7 @@
 if(!live){await page.route('https://evakuator-che.online/**',route=>{const u=new URL(route.request().url());const file=path.join(process.cwd(),u.pathname==='/'?'index.html':decodeURIComponent(u.pathname));if(fs.existsSync(file)&&fs.statSync(file).isFile())return route.fulfill({path:file,contentType:file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html'});return route.abort();});await page.route('https://www.googletagmanager.com/**',r=>r.fulfill({body:''}));}
 await page.goto('https://evakuator-che.online/?qa=ads-'+Date.now());await page.waitForFunction(()=>typeof conversion==='function');
 const events=()=>page.evaluate(()=>dataLayer.map(x=>Array.from(x)).filter(x=>x[0]==='event'&&x[1]==='conversion'));
-assert(await page.locator('script[src*="gtag/js?id=AW-18565415902"]').count());
+assert(await page.locator('script[src*="gtag/js?id=G-VQBLDDQ4RS"]').count());
 const initial=await page.evaluate(()=>Array.from(dataLayer[0]));assert.equal(initial[0],'consent');assert.equal(initial[1],'default');for(const key of ['ad_storage','analytics_storage','ad_user_data','ad_personalization'])assert.equal(initial[2][key],'denied');assert.equal((await events()).length,0);await page.click('#cookie-accept');
 if(!live){await page.evaluate(()=>{conversion('call');conversion('missing');});assert.equal((await events()).length,0);}
 let mode='success',submitted=[];if(!live)await page.route('**/functions/v1/tow-lead',r=>{submitted.push(r.request().postDataJSON());return r.fulfill({status:mode==='error'?500:200,json:mode==='error'?{ok:false}:{ok:true,id:'test-'+submitted.length}});});
@@ -15,5 +15,5 @@ await page.check('#calc-form input[name=service][value=help]');await page.fill('
 ev=await events();assert.equal(ev.length,2);assert.notEqual(ev[0][2].transaction_id,ev[1][2].transaction_id);
 await page.click('#calc-form [type=submit]');await page.waitForTimeout(700);assert.equal((await events()).length,2);
 if(live){await page.waitForTimeout(10000);const matching=requests.filter(u=>new URL(u).searchParams.get('label')==='cchjCO-qyrUdEN6H15RF');assert(matching.length>=2,'Missing Google Ads conversion requests');fs.writeFileSync('qa/ads-live-receipt.json',JSON.stringify({date:new Date().toISOString(),events:ev,requests:matching.map(u=>{const x=new URL(u);return {host:x.host,path:x.pathname,label:x.searchParams.get('label'),transaction_id:x.searchParams.get('oid')};}),errors},null,2));console.log('LIVE conversion requests',matching.length);}
-for(const route of ['/privacy.html','/404.html']){await page.goto('https://evakuator-che.online'+route);await page.waitForFunction(()=>document.querySelector('script[src*="gtag/js?id=AW-18565415902"]'));}
+for(const route of ['/privacy.html','/404.html']){await page.goto('https://evakuator-che.online'+route);await page.waitForFunction(()=>document.querySelector('script[src*="gtag/js?id=G-VQBLDDQ4RS"]'));}
 assert.deepEqual(errors,[]);console.log(live?'LIVE PASS':'LOCAL PASS: both forms, error, duplicates, missing labels, consent');await browser.close();})().catch(e=>{console.error(e);process.exit(1)});

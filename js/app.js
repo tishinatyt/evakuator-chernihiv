@@ -13,12 +13,28 @@ function captureAttribution(){
  if(consent !== 'granted') return;
  try {const params=new URLSearchParams(location.search);const data={};for(const [k,v] of params)if(attributionKeys(k))data[k]=v.slice(0,300);if(Object.keys(data).length)sessionStorage.setItem('tow-attribution',JSON.stringify(data));} catch {}
 }
+function safeReferrer(){try{const u=new URL(document.referrer);return u.origin+u.pathname}catch{return ''}}
+// Explicit GA4 destination and a small parameter allowlist: never forward form data or hrefs.
+function track(name,params={}){
+ if(consent!=='granted'||!validGa)return;
+ const allowed={phone_click:['location'],telegram_click:['location'],viber_click:['location'],calc_start:[],calc_result:['price','km','mode'],lead_submit:['form'],lead_error:['form']};
+ if(!Object.hasOwn(allowed,name))return;
+ const clean={send_to:CONFIG.gaMeasurementId,page_location:location.origin+location.pathname,page_referrer:safeReferrer()};
+ for(const key of allowed[name])if(params[key]!==undefined&&params[key]!==null)clean[key]=params[key];
+ gtag('event',name,clean);
+}
+function clickLocation(link){
+ for(const [selector,value] of [['.mobile-bar','sticky_bar'],['header','header'],['.hero','hero'],['#calculator','calc'],['#calc-form','calc'],['footer','footer'],['#request','request']])if(link.closest(selector))return value;
+ return 'other';
+}
+let calcStarted=false;
+function startCalc(){if(!calcStarted&&consent==='granted'){calcStarted=true;track('calc_start')}}
 function loadTags(){
  if(tagsLoaded || (!validAds&&!validGa))return;
  tagsLoaded=true;gtag('js',new Date());
  if(validAds)gtag('config',CONFIG.googleAdsId,{allow_enhanced_conversions:false});
- if(validGa)gtag('config',CONFIG.gaMeasurementId);
- const script=document.createElement('script');script.async=true;script.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(validAds?CONFIG.googleAdsId:CONFIG.gaMeasurementId);document.head.append(script);
+ if(validGa)gtag('config',CONFIG.gaMeasurementId,{page_location:location.origin+location.pathname,page_referrer:safeReferrer()});
+ const script=document.createElement('script');script.id='tow-google-tag';script.async=true;script.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(validGa?CONFIG.gaMeasurementId:CONFIG.googleAdsId);document.head.append(script);
 }
 function applyConsent(value){
  consent=value;const granted=value==='granted';
@@ -42,9 +58,14 @@ function conversion(kind, transactionId){
  if(kind==='form' && sentConversions.has(key))return;
  if(kind==='form')sentConversions.add(key);
  gtag('event','conversion',{send_to:CONFIG.googleAdsId+'/'+label,...(transactionId?{transaction_id:transactionId}:{})});
- if(validGa)gtag('event',kind==='form'?'generate_lead':'click_to_call',{event_category:'engagement'});
 }
-document.addEventListener('click',event=>{if(event.target.closest('a[href^="tel:"]'))conversion('call')});
+document.addEventListener('click',event=>{
+ const link=event.target.closest('a[href]');if(!link)return;
+ const href=link.getAttribute('href')||'',location=clickLocation(link);
+ if(/^tel:/i.test(href)){track('phone_click',{location});conversion('call')}
+ else if(/^(https?:\/\/(?:t\.me|telegram\.me)\/|tg:)/i.test(href))track('telegram_click',{location});
+ else if(/^(viber:|https?:\/\/(?:www\.)?viber\.com\/)/i.test(href))track('viber_click',{location});
+});
 const calc=$('#calc-form');
 const vehicleNames={car:'Легковий автомобіль',suv:'Кросовер / позашляховик',minibus:'Мікроавтобус',moto:'Мотоцикл / квадроцикл',help:'Допомога на дорозі'};
 const extraNames={nonRolling:'не на ходу',noKeys:'немає ключів',blockedWheels:'заблоковані колеса'};
@@ -85,6 +106,7 @@ function fieldError(field){
  return '';
 }
 if(calc){
+ for(const type of ['pointerdown','focusin','input','change'])calc.addEventListener(type,startCalc);
  fromPicker=PlacePicker.attach('calc-from',routeChanged);toPicker=PlacePicker.attach('calc-to',routeChanged);
  calc.addEventListener('focusin',()=>{PlacePicker.load().catch(()=>{});},{once:true});
  fromPicker.choose(RouteCalculator.centre);
@@ -103,7 +125,8 @@ if(calc){
   const calculation={type:'calc',amount,service:data.service,km,approx,route,from:help?null:from,to:help?null:to,betweenKm:data.betweenKm===undefined?null:Number(data.betweenKm),vehicle:data.vehicle,extras,description:(help?'Допомога на дорозі: '+route:breakdown)+'; '+vehicleNames[data.vehicle]+(extras.length?'; '+extras.map(k=>extraNames[k]).join(', '):'')};
   const address=p=>(p.n+(p.d?', '+p.d:'')).slice(0,200);
   const payload={type:'calc',from:help?data.from.trim():address(from),to:help?'':address(to),phone:'+'+data.phone.replace(/\D/g,''),name:data.name.trim(),vehicle:help?'help':data.vehicle,website:data.website,privacy:true,calculation,attribution:attribution()};
-  const version=++calcVersion;$('#calc-result').hidden=false;$('#calc-heading').hidden=help;
+  const version=++calcVersion;$('#calc-result').hidden=false;
+  startCalc();track('calc_result',{price:amount,km,mode:help?'help':km===0?'city':(from.manual||to.manual)?'manual':'route'});$('#calc-heading').hidden=help;
   $('#calc-total').textContent=help?'Вартість — за домовленістю, передзвонимо протягом 5 хвилин':'від '+amount.toLocaleString('uk-UA')+' грн';
   $('#calc-breakdown').textContent=breakdown;
   $('#calc-callback').textContent=help?'':'Диспетчер передзвонить протягом 5 хвилин, щоб підтвердити ціну та час подачі';
@@ -119,8 +142,8 @@ if(calc){
   calculation.repeat=calcHistory.length>0;const entry={key,status:'pending'};calcHistory.push(entry);
   const save=()=>{try{sessionStorage.setItem('tow-calc-history',JSON.stringify(calcHistory));}catch{}};save();
   status.textContent='Надсилаємо заявку…';
-  try{const transactionId=await sendLead(payload);entry.status='sent';if(version===calcVersion)status.textContent='Заявку надіслано. Очікуйте дзвінка диспетчера.';conversion('form',transactionId);}
-  catch{entry.status='failed';if(version===calcVersion)sendError(status);}finally{save();}
+  try{const transactionId=await sendLead(payload);entry.status='sent';if(version===calcVersion)status.textContent='Заявку надіслано. Очікуйте дзвінка диспетчера.';if(transactionId)track('lead_submit',{form:'calc'});conversion('form',transactionId);}
+  catch{track('lead_error',{form:'calc'});entry.status='failed';if(version===calcVersion)sendError(status);}finally{save();}
  });
 }
 const phone=$('#phone');
@@ -134,8 +157,9 @@ $('#lead-form')?.addEventListener('submit',async event=>{
  button.disabled=true;button.textContent='Надсилаємо…';status.textContent='';
  try{
    const transactionId=await sendLead(data);
-   form.hidden=true;status.innerHTML='<h3>Дякуємо! Передзвонимо протягом 5 хвилин</h3><p>У робочий час: щодня з 5:00 до 23:00. Заявки поза графіком опрацюємо наступного робочого ранку.</p>';status.focus();conversion('form',transactionId);
+   form.hidden=true;status.innerHTML='<h3>Дякуємо! Передзвонимо протягом 5 хвилин</h3><p>У робочий час: щодня з 5:00 до 23:00. Заявки поза графіком опрацюємо наступного робочого ранку.</p>';status.focus();if(transactionId)track('lead_submit',{form:'lead'});conversion('form',transactionId);
  }catch{
+   track('lead_error',{form:'lead'});
    status.textContent='Не вдалося надіслати заявку. Спробуйте ще раз або зателефонуйте: ';const link=document.createElement('a');link.href='tel:'+CONFIG.phone;link.textContent=CONFIG.phoneDisplay;status.append(link);status.focus();
  }finally{button.disabled=false;button.textContent='Надіслати заявку ↗';}
 });

@@ -11,7 +11,7 @@ const CONFIG = {
   supabaseFunctionUrl: "https://pqasdmiqnlyyjwmmqeyc.supabase.co/functions/v1/tow-lead",
   googleAdsId: "AW-18565415902",
   googleAdsConversionLabels: { call: "XXX", form: "cchjCO-qyrUdEN6H15RF" },
-  gaMeasurementId: "G-XXXXXXXXXX",
+  gaMeasurementId: "G-VQBLDDQ4RS",
   siteUrl: "https://evakuator-che.online",
   customDomain: "evakuator-che.online"
 };
